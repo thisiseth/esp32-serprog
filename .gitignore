@@ -1,0 +1,46 @@
+.config
+*.o
+*.pyc
+
+
+# Example project files
+src/serprog/sdkconfig
+src/serprog/sdkconfig.old
+src/serprog/build
+src/serprog/managed_components/*
+src/serprog/trace
+
+# emacs
+.dir-locals.el
+
+# eclipse setting
+.settings
+
+# vscode
+.vscode
+
+# Doc build artifacts
+docs/*/_build/
+docs/*/doxygen-warning-log.txt
+docs/*/sphinx-warning-log.txt
+docs/*/sphinx-warning-log-sanitized.txt
+docs/*/xml/
+docs/*/xml_in/
+docs/*/man/
+docs/doxygen_sqlite3.db
+
+# MacOS directory files
+.DS_Store
+
+# Tools
+tools/factory_nvs_gen/*.bin
+tools/factory_nvs_gen/*.csv
+
+# Patch files
+*.patch
+
+#CTags
+tags
+
+# Dependency lock files
+dependencies.lock

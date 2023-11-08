@@ -1,0 +1,1 @@
+# empty sdkconfig.dafaults is required to enable loading platform-specific sdkconfig.defaults.*
