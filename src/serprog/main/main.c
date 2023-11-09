@@ -11,7 +11,6 @@
 
 #include "serprog.h"
 
-
 #ifdef CONFIG_IDF_TARGET_ESP32
 
 #  define EEPROM_HOST  HSPI_HOST
@@ -348,6 +347,7 @@ void app_main(void)
         int command = getchar();
 
         process(command);
-        fflush(stdout);
+
+        vTaskDelay(1);
     }
 }
