@@ -1,7 +1,7 @@
 # esp32-serprog
 a minimal flashrom/serprog SPI programmer implementation for esp32 family, inspired by [pico-serprog](https://github.com/stacksmashing/pico-serprog) and [stm32-verprog](https://github.com/dword1511/stm32-vserprog)
 
-portable across at least esp32* mcus, although only on ESP32S3 since i have only them
+portable across at least esp32* mcus, although tested only on ESP32S3 since i have only them
 
 ## Configuration
 
@@ -43,6 +43,11 @@ not implemented - haven't touched this one yet - enabling USB-CDC on esp32s3 req
 run `idf.py flash`
 
 ## Use with flashrom
+
+**WARNING**: ESP32 family IO operates at 3.3V, **DO NOT** connect 1.8V flash chips directly, use a levelshifter in that case. 
+even the cheapest BSS138-based one will do the job although the SPI speed will be limited to ~200-400k. a proper levelshifter IC like TXS0108E should work fine at all reasonable SPI speeds
+
+*i have successfully reflashed my Steam Deck 1.8V 16MByte BIOS chip using the cheapest aliexpress MOSFET levelshifter and 1.8V LDO at spispeed=250K, although it took like 20 minutes*
 
 SPI speed selection is up to you, depends on the flash chip, wiring etc. - ESP32 should support up to 80MHz in theory
 
