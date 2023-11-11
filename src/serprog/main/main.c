@@ -43,14 +43,37 @@
 #  define PIN_NUM_CLK  15
 #  define PIN_NUM_CS   4
 
-#  define USE_SERIAL_JTAG
-
 #endif
 
-#ifdef USE_SERIAL_JTAG
+#ifdef CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG
+    #include "driver/usb_serial_jtag.h"
+    #include "esp_vfs_usb_serial_jtag.h"
 
-#  include "driver/usb_serial_jtag.h"
-#  include "esp_vfs_usb_serial_jtag.h"
+    #define USE_SERIAL_JTAG
+
+#elif defined CONFIG_ESP_CONSOLE_UART
+    #include "driver/uart.h"
+
+    #define USE_HW_UART
+
+    #define HW_UART_NUM CONFIG_ESP_CONSOLE_UART_NUM
+
+    //use already allocated (default) pins
+    #define HW_UART_PIN_TX  UART_PIN_NO_CHANGE
+    #define HW_UART_PIN_RX  UART_PIN_NO_CHANGE
+    #define HW_UART_PIN_CTS UART_PIN_NO_CHANGE
+    #define HW_UART_PIN_RTS UART_PIN_NO_CHANGE
+
+    #define HW_UART_BAUD_RATE 921600
+    #define HW_UART_FLOW_CONTROL UART_HW_FLOWCTRL_DISABLE
+
+    #define HW_UART_SERBUF_SIZE 4096
+
+#elif defined CONFIG_ESP_CONSOLE_USB_CDC
+    #define USE_USB_CDC
+
+#else
+    #error no serial option selected
 
 #endif
 
@@ -202,11 +225,22 @@ static void process(int command)
             break;
         case S_CMD_Q_SERBUF:
             putchar(S_ACK);
+
+#if defined HW_UART_SERBUF_SIZE && (HW_UART_FLOW_CONTROL == UART_HW_FLOWCTRL_DISABLE)
+            putchar(HW_UART_SERBUF_SIZE & 0xFF);
+            putchar((HW_UART_SERBUF_SIZE >> 8) & 0xFF);
+#else
+            //serprog protocol: 
+            // If the programmer has a guaranteed working flow control,
+		    // it should return a big bogus value - eg 0xFFFF
             putchar(0xFF);
             putchar(0xFF);
+#endif
+
             break;
         case S_CMD_Q_RDNMAXLEN:
         case S_CMD_Q_WRNMAXLEN:
+            //because of missing halfduplex support single transaction RX+TX is limited to 4094 (SPI_BUF_SIZE)
             putchar(S_ACK);
             putchar((SPI_BUF_SIZE / 2) & 0xFF);
             putchar(((SPI_BUF_SIZE / 2) >> 8) & 0xFF);
@@ -321,7 +355,7 @@ void app_main(void)
 
 #ifdef USE_SERIAL_JTAG
     //configure builtin serial/jtag
-    usb_serial_jtag_driver_config_t usb_serial_jtag_config = (usb_serial_jtag_driver_config_t){1024, 1024};
+    usb_serial_jtag_driver_config_t usb_serial_jtag_config = (usb_serial_jtag_driver_config_t){4096, 4096};
 
     ret = usb_serial_jtag_driver_install(&usb_serial_jtag_config);
     ESP_ERROR_CHECK(ret);
@@ -330,16 +364,35 @@ void app_main(void)
     esp_vfs_dev_usb_serial_jtag_set_tx_line_endings(ESP_LINE_ENDINGS_LF);
     
     esp_vfs_usb_serial_jtag_use_driver();
-#else
-    //i dont have other esp controllers around but the procedure is similar for your chosen UART if it is not serial/jtag
-    // 1) initialize driver
-    // 2) 'use driver' i.e. enable blocking stdin/stdout
 
-    //todo: write other stuff
-    esp_vfs_dev_uart_port_set_rx_line_endings(uart_num, ESP_LINE_ENDINGS_LF);
-    esp_vfs_dev_uart_port_set_tx_line_endings(uart_num, ESP_LINE_ENDINGS_LF);
+#elif defined USE_HW_UART
+    //configure HW uart
+    uart_config_t uart_config = 
+    {
+        .baud_rate = HW_UART_BAUD_RATE,
+        .data_bits = UART_DATA_8_BITS,
+        .parity = UART_PARITY_DISABLE,
+        .stop_bits = UART_STOP_BITS_1,
+        .flow_ctrl = HW_UART_FLOW_CONTROL
+    };
 
-    esp_vfs_dev_uart_use_driver(uart_num);
+    ret = uart_param_config(HW_UART_NUM, &uart_config);
+    ESP_ERROR_CHECK(ret);
+
+    ret = uart_set_pin(HW_UART_NUM, HW_UART_PIN_TX, HW_UART_PIN_RX, HW_UART_PIN_RTS, HW_UART_PIN_CTS);
+    ESP_ERROR_CHECK(ret);
+
+    ret = uart_driver_install(HW_UART_NUM, HW_UART_SERBUF_SIZE, 0, 0, NULL, ESP_INTR_FLAG_IRAM);
+    ESP_ERROR_CHECK(ret);
+
+    esp_vfs_dev_uart_port_set_rx_line_endings(HW_UART_NUM, ESP_LINE_ENDINGS_LF);
+    esp_vfs_dev_uart_port_set_tx_line_endings(HW_UART_NUM, ESP_LINE_ENDINGS_LF);
+
+    esp_vfs_dev_uart_use_driver(HW_UART_NUM);
+
+#elif USE_USB_CDC
+    #error not implemented
+
 #endif
 
     for (;;) 
@@ -348,6 +401,7 @@ void app_main(void)
 
         process(command);
 
+        //just to be safe from RTOS watchdog
         vTaskDelay(1);
     }
 }

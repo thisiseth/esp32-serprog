@@ -1,1 +1,2 @@
-# empty sdkconfig.dafaults is required to enable loading platform-specific sdkconfig.defaults.*
+CONFIG_FREERTOS_UNICORE=y
+CONFIG_UART_ISR_IN_IRAM=y
