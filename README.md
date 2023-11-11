@@ -21,7 +21,7 @@ since i have only ESP32S3 i decided to target built-in serial/JTAG first, and it
 found [a similar issue on the esp32 forum](https://www.esp32.com/viewtopic.php?f=13&t=32209) and some other [ongoing development](https://github.com/espressif/esp-idf/pull/12291) regarding serial buffers
 
 * using flashrom MINGW build on windows: it works reliably for some speed combinations e.g. 1M baud rate 4M SPI rate, except i had to flush the bootloader junk before using the flashrom (e.g. open&close COM port using putty / idf.py monitor)
-* using same version flashrom ubuntu WSL2 build and usbipd to forward the usb device: there is no bootloader junk issue, but i always encounter data loss at random point when reading 4MByte flash (takes tens of seconds), so flashrom just hangs waiting for the data - 
+* using same version flashrom ubuntu WSL2 build and usbipd to forward the usb device: there is no bootloader junk issue, but i always encounter data loss at random point when reading 4MByte flash (takes tens of seconds), so flashrom just hangs waiting for the data
 * haven't tested on real linux or macOS
 
 ### HW UART
