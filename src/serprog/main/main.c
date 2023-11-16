@@ -4,7 +4,6 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "driver/spi_master.h"
-#include "driver/gpio.h"
 #include "esp_vfs_dev.h"
 #include "sdkconfig.h"
 #include "esp_log.h"
@@ -12,40 +11,46 @@
 #include "serprog.h"
 
 #ifdef CONFIG_IDF_TARGET_ESP32
-
-#  define EEPROM_HOST  HSPI_HOST
-#  define PIN_NUM_MISO 18
-#  define PIN_NUM_MOSI 23
-#  define PIN_NUM_CLK  19
-#  define PIN_NUM_CS   13
+    #define EEPROM_HOST  HSPI_HOST
+    #define PIN_NUM_MISO 18
+    #define PIN_NUM_MOSI 23
+    #define PIN_NUM_CLK  19
+    #define PIN_NUM_CS   13
 
 #elif defined CONFIG_IDF_TARGET_ESP32S2
-
-#  define EEPROM_HOST  SPI2_HOST
-#  define PIN_NUM_MISO 37
-#  define PIN_NUM_MOSI 35
-#  define PIN_NUM_CLK  36
-#  define PIN_NUM_CS   34
+    #define EEPROM_HOST  SPI2_HOST
+    #define PIN_NUM_MISO 37
+    #define PIN_NUM_MOSI 35
+    #define PIN_NUM_CLK  36
+    #define PIN_NUM_CS   34
 
 #elif defined CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32C2
-
-#  define EEPROM_HOST  SPI2_HOST
-#  define PIN_NUM_MISO 2
-#  define PIN_NUM_MOSI 7
-#  define PIN_NUM_CLK  6
-#  define PIN_NUM_CS   10
+    #define EEPROM_HOST  SPI2_HOST
+    #define PIN_NUM_MISO 2
+    #define PIN_NUM_MOSI 7
+    #define PIN_NUM_CLK  6
+    #define PIN_NUM_CS   10
 
 #elif CONFIG_IDF_TARGET_ESP32S3
-
-#  define EEPROM_HOST  SPI2_HOST
-#  define PIN_NUM_MISO 5
-#  define PIN_NUM_MOSI 16
-#  define PIN_NUM_CLK  15
-#  define PIN_NUM_CS   4
+    #define EEPROM_HOST  SPI2_HOST
+    #define PIN_NUM_MISO 5
+    #define PIN_NUM_MOSI 16
+    #define PIN_NUM_CLK  15
+    #define PIN_NUM_CS   4
 
 #endif
 
-#ifdef CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG
+#ifdef CONFIG_ESP32_SERPROG_WIFI_ENABLED
+    #include "wifi.h"
+
+    #define USE_WIFI
+
+    #define WIFI_SSID     CONFIG_ESP32_SERPROG_WIFI_SSID
+    #define WIFI_PASSWORD CONFIG_ESP32_SERPROG_WIFI_PASSWORD
+    #define WIFI_HOSTNAME CONFIG_ESP32_SERPROG_WIFI_HOSTNAME
+    #define WIFI_TCP_PORT CONFIG_ESP32_SERPROG_WIFI_TCP_PORT
+
+#elif defined CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG
     #include "driver/usb_serial_jtag.h"
     #include "esp_vfs_usb_serial_jtag.h"
 
@@ -64,7 +69,7 @@
     #define HW_UART_PIN_CTS UART_PIN_NO_CHANGE
     #define HW_UART_PIN_RTS UART_PIN_NO_CHANGE
 
-    #define HW_UART_BAUD_RATE 921600
+    #define HW_UART_BAUD_RATE 4000000
     #define HW_UART_FLOW_CONTROL UART_HW_FLOWCTRL_DISABLE
 
     #define HW_UART_SERBUF_SIZE 4096
@@ -96,37 +101,55 @@ static const char TAG[] = "serprog";
   (1 << S_CMD_Q_RDNMAXLEN) \
 )
 
-static uint32_t getu24() 
+#ifdef USE_WIFI
+    #define serprog_getchar()                         wifi_getchar()
+    #define serprog_putchar(_character)               wifi_putchar(_character)
+    #define serprog_read(_dst, _elementSize, _count)  wifi_read(_dst, _elementSize, _count)
+    #define serprog_write(_src, _elementSize, _count) wifi_write(_src, _elementSize, _count)
+    #define serprog_flush()                           wifi_flush()
+    
+#else
+    #define serprog_getchar()                         getchar()
+    #define serprog_putchar(_character)               putchar(_character)
+    #define serprog_read(_dst, _elementSize, _count)  fread(_dst, _elementSize, _count, stdin)
+    #define serprog_write(_src, _elementSize, _count) fwrite(_src, _elementSize, _count, stdout)
+    #define serprog_flush()                           fflush(stdout)
+
+#endif
+
+static inline uint32_t serprog_getu24(void) 
 {
-    uint32_t c1 = getchar();
-    uint32_t c2 = getchar();
-    uint32_t c3 = getchar();
+    uint32_t c1 = serprog_getchar();
+    uint32_t c2 = serprog_getchar();
+    uint32_t c3 = serprog_getchar();
     return c1 | (c2<<8) | (c3<<16);
 }
 
-static uint32_t getu32() 
+static inline uint32_t serprog_getu32(void) 
 {
-    uint32_t c1 = getchar();
-    uint32_t c2 = getchar();
-    uint32_t c3 = getchar();
-    uint32_t c4 = getchar();
+    uint32_t c1 = serprog_getchar();
+    uint32_t c2 = serprog_getchar();
+    uint32_t c3 = serprog_getchar();
+    uint32_t c4 = serprog_getchar();
     return c1 | (c2<<8) | (c3<<16) | (c4<<24);
 }
 
-static void putu32(uint32_t d) 
+static inline void serprog_putu32(uint32_t d) 
 {
     char buf[4];
     memcpy(buf, &d, 4);
-    putchar(buf[0]);
-    putchar(buf[1]);
-    putchar(buf[2]);
-    putchar(buf[3]);
+    serprog_putchar(buf[0]);
+    serprog_putchar(buf[1]);
+    serprog_putchar(buf[2]);
+    serprog_putchar(buf[3]);
 }
 
 #define SPI_BUF_SIZE 4094
 
 DMA_ATTR unsigned char write_buffer[SPI_BUF_SIZE];
 DMA_ATTR unsigned char read_buffer[SPI_BUF_SIZE];
+
+uint8_t syncnop[] = { S_NAK, S_ACK };
 
 spi_device_handle_t spi_device;
 
@@ -202,74 +225,72 @@ static void process(int command)
     switch(command) 
     {
         case S_CMD_NOP:
-            putchar(S_ACK);
+            serprog_putchar(S_ACK);
             break;
         case S_CMD_Q_IFACE:
-            putchar(S_ACK);
-            putchar(0x01);
-            putchar(0x00);
+            serprog_putchar(S_ACK);
+            serprog_putchar(0x01);
+            serprog_putchar(0x00);
             break;
         case S_CMD_Q_CMDMAP:
-            putchar(S_ACK);
-            putu32(S_CMD_MAP);
+            serprog_putchar(S_ACK);
+            serprog_putu32(S_CMD_MAP);
 
             for(int i = 0; i < 32 - sizeof(uint32_t); ++i) 
             {
-                putchar(0);
+                serprog_putchar(0);
             }
             break;
         case S_CMD_Q_PGMNAME:
-            putchar(S_ACK);
-            fwrite("esp32-serprog\x0\x0\x0", 1, 16, stdout);
-            fflush(stdout);
+            serprog_putchar(S_ACK);
+            serprog_write("esp32-serprog\x0\x0\x0", 1, 16);
             break;
         case S_CMD_Q_SERBUF:
-            putchar(S_ACK);
+            serprog_putchar(S_ACK);
 
 #if defined HW_UART_SERBUF_SIZE && (HW_UART_FLOW_CONTROL == UART_HW_FLOWCTRL_DISABLE)
-            putchar(HW_UART_SERBUF_SIZE & 0xFF);
-            putchar((HW_UART_SERBUF_SIZE >> 8) & 0xFF);
+            serprog_putchar(HW_UART_SERBUF_SIZE & 0xFF);
+            serprog_putchar((HW_UART_SERBUF_SIZE >> 8) & 0xFF);
 #else
             //serprog protocol: 
             // If the programmer has a guaranteed working flow control,
 		    // it should return a big bogus value - eg 0xFFFF
-            putchar(0xFF);
-            putchar(0xFF);
+            serprog_putchar(0xFF);
+            serprog_putchar(0xFF);
 #endif
 
             break;
         case S_CMD_Q_RDNMAXLEN:
         case S_CMD_Q_WRNMAXLEN:
             //because of missing halfduplex support single transaction RX+TX is limited to 4094 (SPI_BUF_SIZE)
-            putchar(S_ACK);
-            putchar((SPI_BUF_SIZE / 2) & 0xFF);
-            putchar(((SPI_BUF_SIZE / 2) >> 8) & 0xFF);
-            putchar(((SPI_BUF_SIZE / 2) >> 16) & 0xFF);
+            serprog_putchar(S_ACK);
+            serprog_putchar((SPI_BUF_SIZE / 2) & 0xFF);
+            serprog_putchar(((SPI_BUF_SIZE / 2) >> 8) & 0xFF);
+            serprog_putchar(((SPI_BUF_SIZE / 2) >> 16) & 0xFF);
             break;
         case S_CMD_Q_BUSTYPE:
-            putchar(S_ACK);
-            putchar(S_SUPPORTED_BUS);
+            serprog_putchar(S_ACK);
+            serprog_putchar(S_SUPPORTED_BUS);
             break;
         case S_CMD_SYNCNOP:
-            putchar(S_NAK);
-            putchar(S_ACK);
+            serprog_write(syncnop, 1, 2);
             break;
         case S_CMD_S_BUSTYPE:
             {
-                int bustype = getchar();
+                int bustype = serprog_getchar();
                 if((bustype | S_SUPPORTED_BUS) == S_SUPPORTED_BUS) 
                 {
-                    putchar(S_ACK);
+                    serprog_putchar(S_ACK);
                 } else 
                 {
-                    putchar(S_NAK);
+                    serprog_putchar(S_NAK);
                 }
             }
             break;
         case S_CMD_O_SPIOP:
             {
-                uint32_t wlen = getu24();
-                uint32_t rlen = getu24();
+                uint32_t wlen = serprog_getu24();
+                uint32_t rlen = serprog_getu24();
 
                 //at least esp32s3's HW SPI does not support:
                 // 1) halfduplex with both TX and RX phases present
@@ -278,11 +299,15 @@ static void process(int command)
 
                 if ((wlen + rlen) > SPI_BUF_SIZE)
                 {
-                    putchar(S_NAK);
+                    serprog_putchar(S_NAK);
                     break;
                 }
 
-                fread(write_buffer, 1, wlen, stdin);
+                if (serprog_read(write_buffer, 1, wlen) < wlen)
+                {
+                    break;
+                }
+                
                 memset(write_buffer + wlen, 0, SPI_BUF_SIZE - wlen);
 
                 esp_err_t err;
@@ -290,7 +315,7 @@ static void process(int command)
                 err = spi_device_acquire_bus(spi_device, portMAX_DELAY);
                 if (err != ESP_OK) 
                 {
-                    putchar(S_NAK);
+                    serprog_putchar(S_NAK);
                     break;
                 }
 
@@ -307,53 +332,61 @@ static void process(int command)
                 if (err != ESP_OK)
                 {
                     spi_device_release_bus(spi_device);
-                    putchar(S_NAK);
+                    serprog_putchar(S_NAK);
                     break;
                 }
 
                 spi_device_release_bus(spi_device);
 
-                putchar(S_ACK);
+                serprog_putchar(S_ACK);
 
                 if (rlen > 0) 
                 {
-                    fwrite(read_buffer + wlen, 1, rlen, stdout);
+                    serprog_write(read_buffer + wlen, 1, rlen);
                 }
             }
             break;
         case S_CMD_S_SPI_FREQ:
             {
-                uint32_t freq = getu32();
+                uint32_t freq = serprog_getu32();
                 if (freq >= 1) 
                 {
-                    putchar(S_ACK);
-                    putu32(serprog_spi_init(freq));
-                } else 
+                    serprog_putchar(S_ACK);
+                    serprog_putu32(serprog_spi_init(freq));
+                } 
+                else 
                 {
-                    putchar(S_NAK);
+                    serprog_putchar(S_NAK);
                 }
             }
             break;
         default:
-            putchar(S_NAK);
+            serprog_putchar(S_NAK);
     }
 
-    fflush(stdout);
+    serprog_flush();
 }
 
 void app_main(void)
 {
+    esp_err_t ret;
+
+#ifdef USE_WIFI
+    ESP_LOGI(TAG, "initializing serprog-wifi");
+    ret = wifi_init(WIFI_SSID, WIFI_PASSWORD, WIFI_HOSTNAME, WIFI_TCP_PORT);
+    ESP_ERROR_CHECK(ret);
+
+#else
     ESP_LOGI(TAG, "disabling built-in logging for serial");
     esp_log_level_set("*", ESP_LOG_NONE);
     fflush(stdout);
 
     //configure UART for blocking mode
-    esp_err_t ret;
 
     //disable input buffering
     setvbuf(stdin, NULL, _IONBF, 0);
 
-#ifdef USE_SERIAL_JTAG
+    #ifdef USE_SERIAL_JTAG
     //configure builtin serial/jtag
     usb_serial_jtag_driver_config_t usb_serial_jtag_config = (usb_serial_jtag_driver_config_t){4096, 4096};
 
@@ -365,7 +398,7 @@ void app_main(void)
     
     esp_vfs_usb_serial_jtag_use_driver();
 
-#elif defined USE_HW_UART
+    #elif defined USE_HW_UART
     //configure HW uart
     uart_config_t uart_config = 
     {
@@ -390,14 +423,15 @@ void app_main(void)
 
     esp_vfs_dev_uart_use_driver(HW_UART_NUM);
 
-#elif USE_USB_CDC
-    #error not implemented
+    #elif USE_USB_CDC
+        #error not implemented
 
+    #endif
 #endif
 
     for (;;) 
     {
-        int command = getchar();
+        int command = serprog_getchar();
 
         process(command);
 

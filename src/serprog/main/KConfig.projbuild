@@ -1,0 +1,38 @@
+menu "esp32-serprog"
+    
+    choice ESP32_SERPROG_WIFI
+        prompt "WiFi configuration"
+        default ESP32_SERPROG_WIFI_DISABLED
+        help
+            Choose how the WiFi settings should be configured.
+
+        config ESP32_SERPROG_WIFI_DISABLED
+            bool
+            prompt "WiFi disabled, UART is used for serprog"
+        config ESP32_SERPROG_WIFI_ENABLED
+            bool
+            prompt "WiFi enabled, UART is used for log output"
+    endchoice
+
+    config ESP32_SERPROG_WIFI_SSID
+        string "Connect to SSID name"
+        depends on ESP32_SERPROG_WIFI_ENABLED
+        default "your_ssid"
+        
+    config ESP32_SERPROG_WIFI_PASSWORD
+        string "WiFi password"
+        depends on ESP32_SERPROG_WIFI_ENABLED
+        default "your_password"
+
+    config ESP32_SERPROG_WIFI_HOSTNAME
+        string "Device hostname"
+        depends on ESP32_SERPROG_WIFI_ENABLED
+        default "esp32-serprog"
+    
+    
+    config ESP32_SERPROG_WIFI_TCP_PORT
+        int "Listen on TCP port"
+        depends on ESP32_SERPROG_WIFI_ENABLED
+        default 8888
+        
+endmenu
