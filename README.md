@@ -1,7 +1,19 @@
 # esp32-serprog
 a minimal flashrom/serprog SPI programmer implementation for esp32 family, inspired by [pico-serprog](https://github.com/stacksmashing/pico-serprog) and [stm32-verprog](https://github.com/dword1511/stm32-vserprog)
 
-portable across at least esp32* mcus, although tested only on ESP32S3 since i have only them
+## Features
+
+Use your ESP32 board as a [flashrom](https://flashrom.org/) compatible SPI flash programmer
+
+* Should be compatible with all ESP32 family MCUs
+* Uses ESP32 HW SPI peripheral capable of up to 80 MHz clock rate
+* Multiple connection options: HW UART, USB Serial/JTAG<sup>1</sup>, USB-CDC<sup>2</sup>, TCP (Wi-Fi)<sup>3</sup>
+
+<sup>1</sup> - works unreliably, see USB Serial/JTAG section
+
+<sup>2</sup> - not implemented yet
+
+<sup>3</sup> - flashrom serprog TCP capability is broken right now, but i already submitted a fix, so maybe it will be available in 1.4.0 release
 
 ## Configuration
 
@@ -32,11 +44,30 @@ after the serial/JTAG failure i decided to implement the real UART support, sinc
 * bottlenecked by UART baud rate
 * available on all ESP32 family MCUs
 * a board with USB-UART converter (or an external one) is required though
-* i used baud rate of 921600 bps for testing
+* i used baud rates of 921600 & 4_000_000 bps for testing
 
 ### USB-CDC
 
 not implemented - haven't touched this one yet - enabling USB-CDC on esp32s3 requires burning an eFuse to disconnect the USB serial/JTAG PHY permanently
+
+### TCP over Wi-Fi
+
+*serprog TCP support is available only in non-windows builds e.g. linux or wsl2*
+
+***warning**: flashrom serprog TCP support is broken in basically all available releases, 
+you will have to apply a patch and build from sources or it will fail to synchronize ~90% of attempts - depends on ping and luck. if synchronization was successful it will work as expected*
+
+to use TCP over Wi-Fi run `idf.py menuconfig` and go to `esp32-serprog`. 
+select `Wi-Fi enabled` and set up your (existing) Wi-Fi credentials
+
+ESP32 will connect to your Wi-Fi network and start listening for flashrom connections at (default setting) TCP port `8888`. 
+IP address to connect to can be obtained either from default console output or by resolving the hostname (default setting) `esp32-serprog` / looking at your router client table
+
+flashrom usage is the same as with UART, but instead of `dev=/dev/ttyACM0` you pass your ip:port e.g. `ip=192.168.0.2:8888`:
+
+```
+flashrom -p serprog:ip=192.168.1.120:8888,spispeed=20M -c W25Q32BV/W25Q32CV/W25Q32DV --verbose -w ../8266.bin
+```
 
 ## Build and flash
 
