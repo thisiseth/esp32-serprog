@@ -38,7 +38,7 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base,
     } 
     else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) 
     {
-        ESP_LOGI(TAG, "Event: station disconnected");
+        ESP_LOGW(TAG, "Event: station disconnected");
         xEventGroupSetBits(s_wifi_event_group, WIFI_FAIL_BIT);
     } 
     else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) 
@@ -173,13 +173,13 @@ esp_err_t wifi_init(const char *ssid, const char *password, const char *hostname
 
     if (bits & WIFI_CONNECTED_BIT) 
     {
-        ESP_LOGI(TAG, "Connected to ap SSID:%s", ssid);
+        ESP_LOGW(TAG, "Connected to ap SSID: %s", ssid);
     } 
     else if (bits & WIFI_FAIL_BIT) 
     {
-        ESP_LOGI(TAG, "Failed to connect to SSID:%s", ssid);
+        ESP_LOGE(TAG, "Failed to connect to SSID: %s", ssid);
         return ESP_FAIL;
-    } 
+    }
     else 
     {
         ESP_LOGE(TAG, "UNEXPECTED EVENT");
@@ -195,8 +195,6 @@ esp_err_t wifi_init(const char *ssid, const char *password, const char *hostname
 
     ESP_ERROR_CHECK(esp_netif_get_ip_info(esp_netif_sta, &ip_info));
     ESP_ERROR_CHECK(esp_netif_get_hostname(esp_netif_sta, &actual_hostname));
-
-    ESP_LOGW(TAG, "WiFi ready, IP: "IPSTR", hostname: %s", IP2STR(&ip_info.ip), actual_hostname);
 
     ///////// INITIALIZE TCP LISTENER ////////
 
@@ -228,6 +226,8 @@ esp_err_t wifi_init(const char *ssid, const char *password, const char *hostname
     open_socket = -1;
     s_socket_event_group = xEventGroupCreate();
     xTaskCreatePinnedToCore(tcp_server_task, "tcp_server", 4096, &listen_sock, 5, NULL, 1);
+
+    ESP_LOGW(TAG, "WiFi ready, IP: "IPSTR", hostname: %s, port: %d", IP2STR(&ip_info.ip), actual_hostname, port);
 
     return ESP_OK;
 }
@@ -261,7 +261,7 @@ int wifi_getchar(void)
     {
         if (wifi_read(&ret, 1, 1) > 0)
         {
-            ESP_LOGI(TAG, "GETCHAR: %x", ret);
+            ESP_LOGD(TAG, "GETCHAR: %x", ret);
             return ret;
         }
     }
@@ -271,7 +271,7 @@ int wifi_putchar(int character)
 {
     uint8_t buffer = (uint8_t)(character & 0xFF);
 
-    ESP_LOGI(TAG, "PUTCHAR: %x", buffer);
+    ESP_LOGD(TAG, "PUTCHAR: %x", buffer);
     return wifi_write(&buffer, 1, 1) > 0 ? 0 : -1;
 }
 
@@ -288,7 +288,7 @@ int wifi_read(void *buffer, size_t element_size, size_t count)
 
         while (to_receive > received_total) 
         {
-            //ESP_LOGI(TAG, "recv: to_receive: %d, received_total: %d", to_receive, received_total);
+            ESP_LOGD(TAG, "recv: to_receive: %d, received_total: %d", to_receive, received_total);
             int received = recv(current_socket, buffer + received_total, to_receive - received_total, 0);
             if (received <= 0)
             {
@@ -317,7 +317,7 @@ int wifi_write(void *buffer, size_t element_size, size_t count)
 
     while (to_write > written_total) 
     {
-        //ESP_LOGI(TAG, "send: to_write: %d, written_total: %d", to_write, written_total);
+        ESP_LOGD(TAG, "send: to_write: %d, written_total: %d", to_write, written_total);
         int written = send(current_socket, buffer + written_total, to_write - written_total, 0);
         if (written <= 0)
         {
