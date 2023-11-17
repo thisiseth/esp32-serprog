@@ -52,12 +52,12 @@ not implemented - haven't touched this one yet - enabling USB-CDC on esp32s3 req
 
 ### TCP over Wi-Fi
 
-*serprog TCP support is available only in non-windows builds e.g. linux or wsl2*
+*serprog TCP support is available only in non-windows builds e.g. linux, wsl2 etc.*
 
 ***warning**: flashrom serprog TCP support is broken in basically all available releases, 
-you will have to apply a patch and build from sources or it will fail to synchronize ~90% of attempts - depends on ping and luck. if synchronization was successful it will work as expected*
+you will have to apply [a patch](/flashrom_fix_tcp_patch.diff) and build from sources or it will fail to synchronize ~90% of attempts - depends on ping and luck. if synchronization was successful it will work as expected*
 
-to use TCP over Wi-Fi run `idf.py menuconfig` and go to `esp32-serprog`. 
+to enable TCP over Wi-Fi, before building run `idf.py menuconfig` and go to `esp32-serprog`,
 select `Wi-Fi enabled` and set up your (existing) Wi-Fi credentials
 
 ESP32 will connect to your Wi-Fi network and start listening for flashrom connections at (default setting) TCP port `8888`. 
