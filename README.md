@@ -13,7 +13,7 @@ Use your ESP32 board as a [flashrom](https://flashrom.org/) compatible SPI flash
 
 <sup>2</sup> - not implemented yet
 
-<sup>3</sup> - flashrom serprog TCP capability is broken right now, but i already submitted a fix, so maybe it will be available in 1.4.0 release
+<sup>3</sup> - flashrom serprog TCP capability is working only on latest dev build
 
 ## Configuration
 
@@ -54,8 +54,7 @@ not implemented - haven't touched this one yet - enabling USB-CDC on esp32s3 req
 
 *serprog TCP support is available only in non-windows builds e.g. linux, wsl2 etc.*
 
-***warning**: flashrom serprog TCP support is broken in basically all available releases, 
-you will have to apply [a patch](/flashrom_fix_tcp_patch.diff) and build from sources or it will fail to synchronize ~90% of attempts - depends on ping and luck. if synchronization was successful it will work as expected*
+***warning**: flashrom serprog TCP support is working reliably only on latest dev build, please pull latest version and build from sources*
 
 to enable TCP over Wi-Fi, before building run `idf.py menuconfig` and go to `esp32-serprog`,
 select `Wi-Fi enabled` and set up your (existing) Wi-Fi credentials
