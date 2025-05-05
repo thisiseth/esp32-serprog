@@ -7,7 +7,7 @@ Use your ESP32 board as a [flashrom](https://flashrom.org/) compatible SPI flash
 
 * Should be compatible with all ESP32 family MCUs
 * Uses ESP32 HW SPI peripheral capable of up to 80 MHz clock rate
-* Multiple connection options: HW UART, USB Serial/JTAG, TCP (Wi-Fi)<sup>1</sup>
+* Multiple connection options: USB Serial/JTAG, HW UART, TCP (Wi-Fi)<sup>1</sup>
 
 <sup>1</sup> - flashrom serprog TCP capability is limited to non-windows OSes and requires flashrom version 1.4.0 or later 
 
@@ -44,7 +44,7 @@ HW UART can be used:
 
 in theory tinyUSB can be used instead of built-in USB Serial/JTAG peripheral, 
 but it is supported only by a subset of USB Serial/JTAG-capable chips (e.g. ESP32-S3 but not ESP32-C3/C6)
-and since USB Serial/JTAG no longer misbehaves so i don't see any benefit in implementing USB-CDC
+and since USB Serial/JTAG no longer misbehaves, i don't see any benefit in implementing USB-CDC
 
 ### TCP over Wi-Fi
 
