@@ -1,5 +1,5 @@
 # esp32-serprog
-a minimal flashrom/serprog SPI programmer implementation for esp32 family, inspired by [pico-serprog](https://github.com/stacksmashing/pico-serprog) and [stm32-verprog](https://github.com/dword1511/stm32-vserprog)
+a minimal flashrom/serprog SPI programmer implementation for esp32 family, inspired by [pico-serprog](https://github.com/stacksmashing/pico-serprog) and [stm32-vserprog](https://github.com/dword1511/stm32-vserprog)
 
 ## Features
 
