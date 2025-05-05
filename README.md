@@ -11,7 +11,7 @@ Use your ESP32 board as a [flashrom](https://flashrom.org/) compatible SPI flash
 
 <sup>1</sup> - not implemented yet
 
-<sup>2</sup> - flashrom serprog TCP capability is working only on latest dev build
+<sup>2</sup> - flashrom serprog TCP capability is limited to linux only and requires flashrom version 1.4.0 or later 
 
 ## Configuration
 
@@ -26,10 +26,10 @@ serial interface to use options are (MCU dependent):
 
 ### USB Serial/JTAG
 
-older versions of esp-idf had issues with USB Serial/JTAG reliabilities, 
+older versions of esp-idf had issues with USB Serial/JTAG reliability, 
 but as of esp-idf 5.4.0 everything works as intended
 
-default option for USB-capable chips (ESP32-S3, ESP32-C3, ESP32-C6 etc.)
+this is the default option for USB-capable chips (ESP32-S3, ESP32-C3, ESP32-C6 etc.)
 
 ### HW UART
 
