@@ -50,7 +50,7 @@ and since USB Serial/JTAG no longer misbehaves, i don't see any benefit in imple
 
 *serprog TCP support is available only in non-windows builds e.g. linux, wsl2 etc.*
 
-***warning**: flashrom serprog TCP support is working reliably only on >= 1.4.0*
+***warning**: flashrom serprog TCP support is working reliably only on flashrom version >= 1.4.0*
 
 to enable TCP over Wi-Fi, before building run `idf.py menuconfig` and go to `esp32-serprog`,
 select `Wi-Fi enabled` and set up your (existing) Wi-Fi credentials
