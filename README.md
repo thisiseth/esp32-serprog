@@ -7,13 +7,11 @@ Use your ESP32 board as a [flashrom](https://flashrom.org/) compatible SPI flash
 
 * Should be compatible with all ESP32 family MCUs
 * Uses ESP32 HW SPI peripheral capable of up to 80 MHz clock rate
-* Multiple connection options: HW UART, USB Serial/JTAG<sup>1</sup>, USB-CDC<sup>2</sup>, TCP (Wi-Fi)<sup>3</sup>
+* Multiple connection options: HW UART, USB Serial/JTAG, USB-CDC<sup>1</sup>, TCP (Wi-Fi)<sup>2</sup>
 
-<sup>1</sup> - works unreliably, see USB Serial/JTAG section
+<sup>1</sup> - not implemented yet
 
-<sup>2</sup> - not implemented yet
-
-<sup>3</sup> - flashrom serprog TCP capability is working only on latest dev build
+<sup>2</sup> - flashrom serprog TCP capability is working only on latest dev build
 
 ## Configuration
 
@@ -28,17 +26,15 @@ serial interface to use options are (MCU dependent):
 
 ### USB Serial/JTAG
 
-since i have only ESP32S3 i decided to target built-in serial/JTAG first, and it kind of works but there are issues most likely with the serial peripheral itself:
+older versions of esp-idf had issues with USB Serial/JTAG reliabilities, 
+but as of esp-idf 5.4.0 everything works as intended
 
-found [a similar issue on the esp32 forum](https://www.esp32.com/viewtopic.php?f=13&t=32209) and some other [ongoing development](https://github.com/espressif/esp-idf/pull/12291) regarding serial buffers
-
-* using flashrom MINGW build on windows: it works reliably for some speed combinations e.g. 1M baud rate 4M SPI rate, except i had to flush the bootloader junk before using the flashrom (e.g. open&close COM port using putty / idf.py monitor)
-* using same version flashrom ubuntu WSL2 build and usbipd to forward the usb device: there is no bootloader junk issue, but i always encounter data loss at random point when reading 4MByte flash (takes tens of seconds), so flashrom just hangs waiting for the data
-* haven't tested on real linux or macOS
+default option for USB-capable chips (ESP32-S3, ESP32-C3, ESP32-C6 etc.)
 
 ### HW UART
 
-after the serial/JTAG failure i decided to implement the real UART support, since i'm using a devkit board with CH343 USB-UART converter wired to UART0:
+if USB Serial/JTAG is not supported by your MCU or works unreliably,
+HW UART can be used:
 
 * works perfectly as expected
 * bottlenecked by UART baud rate
@@ -48,13 +44,13 @@ after the serial/JTAG failure i decided to implement the real UART support, sinc
 
 ### USB-CDC
 
-not implemented - haven't touched this one yet - enabling USB-CDC on esp32s3 requires burning an eFuse to disconnect the USB serial/JTAG PHY permanently
+not implemented - haven't touched this one yet...
 
 ### TCP over Wi-Fi
 
 *serprog TCP support is available only in non-windows builds e.g. linux, wsl2 etc.*
 
-***warning**: flashrom serprog TCP support is working reliably only on latest dev build, please pull latest version and build from sources*
+***warning**: flashrom serprog TCP support is working reliably only on >= 1.4.0*
 
 to enable TCP over Wi-Fi, before building run `idf.py menuconfig` and go to `esp32-serprog`,
 select `Wi-Fi enabled` and set up your (existing) Wi-Fi credentials
@@ -79,7 +75,7 @@ even the cheapest BSS138-based one will do the job although the SPI speed will b
 
 *i have successfully reflashed my Steam Deck 1.8V 16MByte BIOS chip using the cheapest aliexpress MOSFET levelshifter and 1.8V LDO at spispeed=250K, although it took like 20 minutes*
 
-SPI speed selection is up to you, depends on the flash chip, wiring etc. - ESP32 should support up to 80MHz in theory
+SPI speed selection is up to you, depends on the flash chip, wiring etc. - ESP32 should support up to 80MHz in theory. If no spispeed parameter is provided default value of 8M is used
 
 UART baud rate matters only when using HW UART, at least serial/JTAG will always transmit as fast as USB allows
 
