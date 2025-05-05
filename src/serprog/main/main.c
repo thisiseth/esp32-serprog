@@ -31,7 +31,7 @@
     #define PIN_NUM_CLK  6
     #define PIN_NUM_CS   10
 
-#elif CONFIG_IDF_TARGET_ESP32S3
+#elif defined CONFIG_IDF_TARGET_ESP32S3
     #define EEPROM_HOST  SPI2_HOST
     #define PIN_NUM_MISO 5
     #define PIN_NUM_MOSI 16
@@ -428,6 +428,8 @@ void app_main(void)
 
     #endif
 #endif
+
+    serprog_spi_init(8*1000*1000); //use 8M spispeed as initial value
 
     for (;;) 
     {
