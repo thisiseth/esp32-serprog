@@ -19,10 +19,10 @@
 
 #elif defined CONFIG_IDF_TARGET_ESP32S2
     #define EEPROM_HOST  SPI2_HOST
-    #define PIN_NUM_MISO 37
-    #define PIN_NUM_MOSI 35
-    #define PIN_NUM_CLK  36
-    #define PIN_NUM_CS   34
+    #define PIN_NUM_MISO 13
+    #define PIN_NUM_MOSI 11
+    #define PIN_NUM_CLK  12
+    #define PIN_NUM_CS   10
 
 #elif defined CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32C2
     #define EEPROM_HOST  SPI2_HOST
