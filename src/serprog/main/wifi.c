@@ -225,7 +225,7 @@ esp_err_t wifi_init(const char *ssid, const char *password, const char *hostname
 
     open_socket = -1;
     s_socket_event_group = xEventGroupCreate();
-    xTaskCreatePinnedToCore(tcp_server_task, "tcp_server", 4096, &listen_sock, 5, NULL, 1);
+    xTaskCreatePinnedToCore(tcp_server_task, "tcp_server", 4096, &listen_sock, 5, NULL, CONFIG_SOC_CPU_CORES_NUM - 1);
 
     ESP_LOGW(TAG, "WiFi ready, IP: "IPSTR", hostname: %s, port: %d", IP2STR(&ip_info.ip), actual_hostname, port);
 
