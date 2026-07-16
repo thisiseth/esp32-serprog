@@ -10,6 +10,10 @@
 
 #include "serprog.h"
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////// Please update the following configuration according to your HardWare spec /////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 #ifdef CONFIG_IDF_TARGET_ESP32
     #define EEPROM_HOST  HSPI_HOST
     #define PIN_NUM_MISO 18
@@ -52,12 +56,13 @@
 
 #elif defined CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG
     #include "driver/usb_serial_jtag.h"
-    #include "esp_vfs_usb_serial_jtag.h"
+    #include "driver/usb_serial_jtag_vfs.h"
 
     #define USE_SERIAL_JTAG
 
 #elif defined CONFIG_ESP_CONSOLE_UART
     #include "driver/uart.h"
+    #include "driver/uart_vfs.h"
 
     #define USE_HW_UART
 
@@ -107,14 +112,12 @@ static const char TAG[] = "serprog";
     #define serprog_read(_dst, _elementSize, _count)  wifi_read(_dst, _elementSize, _count)
     #define serprog_write(_src, _elementSize, _count) wifi_write(_src, _elementSize, _count)
     #define serprog_flush()                           wifi_flush()
-    
 #else
     #define serprog_getchar()                         getchar()
     #define serprog_putchar(_character)               putchar(_character)
     #define serprog_read(_dst, _elementSize, _count)  fread(_dst, _elementSize, _count, stdin)
     #define serprog_write(_src, _elementSize, _count) fwrite(_src, _elementSize, _count, stdout)
     #define serprog_flush()                           fflush(stdout)
-
 #endif
 
 static inline uint32_t serprog_getu24(void) 
@@ -393,10 +396,10 @@ void app_main(void)
     ret = usb_serial_jtag_driver_install(&usb_serial_jtag_config);
     ESP_ERROR_CHECK(ret);
 
-    esp_vfs_dev_usb_serial_jtag_set_rx_line_endings(ESP_LINE_ENDINGS_LF);
-    esp_vfs_dev_usb_serial_jtag_set_tx_line_endings(ESP_LINE_ENDINGS_LF);
+    usb_serial_jtag_vfs_set_rx_line_endings(ESP_LINE_ENDINGS_LF);
+    usb_serial_jtag_vfs_set_tx_line_endings(ESP_LINE_ENDINGS_LF);
     
-    esp_vfs_usb_serial_jtag_use_driver();
+    usb_serial_jtag_vfs_use_driver();
 
     #elif defined USE_HW_UART
     //configure HW uart
@@ -418,14 +421,13 @@ void app_main(void)
     ret = uart_driver_install(HW_UART_NUM, HW_UART_SERBUF_SIZE, 0, 0, NULL, ESP_INTR_FLAG_IRAM);
     ESP_ERROR_CHECK(ret);
 
-    esp_vfs_dev_uart_port_set_rx_line_endings(HW_UART_NUM, ESP_LINE_ENDINGS_LF);
-    esp_vfs_dev_uart_port_set_tx_line_endings(HW_UART_NUM, ESP_LINE_ENDINGS_LF);
+    uart_vfs_dev_port_set_rx_line_endings (HW_UART_NUM, ESP_LINE_ENDINGS_LF);
+    uart_vfs_dev_port_set_tx_line_endings (HW_UART_NUM, ESP_LINE_ENDINGS_LF);
 
-    esp_vfs_dev_uart_use_driver(HW_UART_NUM);
+    uart_vfs_dev_use_driver(HW_UART_NUM);
 
     #elif USE_USB_CDC
         #error not implemented
-
     #endif
 #endif
 
