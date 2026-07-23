@@ -30,13 +30,11 @@ This is the default option for USB-capable chips (ESP32-S3, ESP32-C3, ESP32-C6 e
 ### HW UART
 
 If USB Serial/JTAG is not supported by your MCU or works unreliably,
-HW UART can be used:
+HW UART can be used
 
-* works perfectly as expected
-* bottlenecked by UART baud rate
 * available on all ESP32 family MCUs
 * a board with USB-UART converter (or an external one) is required though
-* i used baud rates of 921600 & 4_000_000 bps for testing
+* uses default TX&RX pins and a default baud rate of 921600 
 
 ### USB-CDC
 

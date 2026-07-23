@@ -73,7 +73,7 @@
     #define HW_UART_PIN_CTS UART_PIN_NO_CHANGE
     #define HW_UART_PIN_RTS UART_PIN_NO_CHANGE
 
-    #define HW_UART_BAUD_RATE 4000000
+    #define HW_UART_BAUD_RATE 921600
     #define HW_UART_FLOW_CONTROL UART_HW_FLOWCTRL_DISABLE
 
     #define HW_UART_SERBUF_SIZE 4096
@@ -437,8 +437,5 @@ void app_main(void)
         int command = serprog_getchar();
 
         process(command);
-
-        //just to be safe from RTOS watchdog
-        vTaskDelay(1);
     }
 }
