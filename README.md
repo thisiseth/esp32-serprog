@@ -13,32 +13,28 @@ Use your ESP32 board as a [flashrom](https://flashrom.org/) compatible SPI flash
 
 ## Configuration
 
-assuming you already have esp-idf environment set up, target board selected etc:
+First you need an esp-idf (v6.0 or newer) installation. The most convenient option is probably the official VS Code esp-idf extension, pick latest stable sdk version.
 
-1) run `idf.py menuconfig` and set `ESP System settings -> Channel for console output` to the serial interface you are going to use. 
-  this will initialize the corresponding peripheral and bind **stdin** and **stdout**
-2) at the beginning of `main.c` check what are the predefined SPI pins for your target MCU / set your own (if configurable).
-3) below the SPI config check and modify chosen serial interface configuration (e.g. baud rate if using HW UART)
+1) Set your target chip using `idf.py set-target your_chip` where `your_chip` is e.g. `esp32s3`
+2) Run `idf.py menuconfig` and set `Component config -> ESP-STDIO -> Channel for console output` to the serial interface you are going to use. 
+  this will initialize the corresponding peripheral and bind **stdin** and **stdout**. Leave 'secondary output' as none.
+3) At the beginning of `main.c` check what are the predefined SPI pins for your target MCU / set your own (if configurable).
+4) Below the SPI config check and modify chosen serial interface configuration (e.g. baud rate if using HW UART).
 
-serial interface to use options are (MCU dependent):
+Serial interface to use options are (MCU dependent):
 
 ### USB Serial/JTAG
 
-older versions of esp-idf had issues with USB Serial/JTAG reliability, 
-but as of esp-idf 5.4.0 everything appears to work as intended
-
-this is the default option for USB-capable chips (ESP32-S3, ESP32-C3, ESP32-C6 etc.)
+This is the default option for USB-capable chips (ESP32-S3, ESP32-C3, ESP32-C6 etc.)
 
 ### HW UART
 
-if USB Serial/JTAG is not supported by your MCU or works unreliably,
-HW UART can be used:
+If USB Serial/JTAG is not supported by your MCU or works unreliably,
+HW UART can be used
 
-* works perfectly as expected
-* bottlenecked by UART baud rate
 * available on all ESP32 family MCUs
 * a board with USB-UART converter (or an external one) is required though
-* i used baud rates of 921600 & 4_000_000 bps for testing
+* uses default TX&RX pins and a default baud rate of 921600 
 
 ### USB-CDC
 

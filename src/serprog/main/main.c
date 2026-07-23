@@ -10,33 +10,36 @@
 
 #include "serprog.h"
 
-#ifdef CONFIG_IDF_TARGET_ESP32
-    #define EEPROM_HOST  HSPI_HOST
-    #define PIN_NUM_MISO 18
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////// Please update the following configuration according to your HardWare spec /////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#ifdef CONFIG_IDF_TARGET_ESP32 //ESP32 can use any pins for SPI 
+                               //but 'native' IOMUX pins are believed to be more stable for higher speeds
+                               //if non-native pins are used there is no difference between HSPI and VSPI
+    //native SPI pins
+
+    #define EEPROM_HOST  SPI3_HOST //VSPI
+    #define PIN_NUM_MISO 19
     #define PIN_NUM_MOSI 23
-    #define PIN_NUM_CLK  19
-    #define PIN_NUM_CS   13
+    #define PIN_NUM_CLK  18
+    #define PIN_NUM_CS   5
 
-#elif defined CONFIG_IDF_TARGET_ESP32S2
-    #define EEPROM_HOST  SPI2_HOST
-    #define PIN_NUM_MISO 37
-    #define PIN_NUM_MOSI 35
-    #define PIN_NUM_CLK  36
-    #define PIN_NUM_CS   34
+    //or
 
-#elif defined CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32C2
-    #define EEPROM_HOST  SPI2_HOST
+    // #define EEPROM_HOST  SPI2_HOST //HSPI 
+    // #define PIN_NUM_MISO 12
+    // #define PIN_NUM_MOSI 13
+    // #define PIN_NUM_CLK  14
+    // #define PIN_NUM_CS   15
+
+#else //on other (newer) MCUs 'native' SPI pins vs GPIO matrix routing difference is less noticeable 
+      //so just choose whatever you like
+    #define EEPROM_HOST  SPI2_HOST 
     #define PIN_NUM_MISO 2
-    #define PIN_NUM_MOSI 7
-    #define PIN_NUM_CLK  6
-    #define PIN_NUM_CS   10
-
-#elif defined CONFIG_IDF_TARGET_ESP32S3
-    #define EEPROM_HOST  SPI2_HOST
-    #define PIN_NUM_MISO 5
-    #define PIN_NUM_MOSI 16
-    #define PIN_NUM_CLK  15
-    #define PIN_NUM_CS   4
+    #define PIN_NUM_MOSI 41
+    #define PIN_NUM_CLK  40
+    #define PIN_NUM_CS   42
 
 #endif
 
@@ -52,12 +55,13 @@
 
 #elif defined CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG
     #include "driver/usb_serial_jtag.h"
-    #include "esp_vfs_usb_serial_jtag.h"
+    #include "driver/usb_serial_jtag_vfs.h"
 
     #define USE_SERIAL_JTAG
 
 #elif defined CONFIG_ESP_CONSOLE_UART
     #include "driver/uart.h"
+    #include "driver/uart_vfs.h"
 
     #define USE_HW_UART
 
@@ -69,7 +73,7 @@
     #define HW_UART_PIN_CTS UART_PIN_NO_CHANGE
     #define HW_UART_PIN_RTS UART_PIN_NO_CHANGE
 
-    #define HW_UART_BAUD_RATE 4000000
+    #define HW_UART_BAUD_RATE 921600
     #define HW_UART_FLOW_CONTROL UART_HW_FLOWCTRL_DISABLE
 
     #define HW_UART_SERBUF_SIZE 4096
@@ -107,14 +111,12 @@ static const char TAG[] = "serprog";
     #define serprog_read(_dst, _elementSize, _count)  wifi_read(_dst, _elementSize, _count)
     #define serprog_write(_src, _elementSize, _count) wifi_write(_src, _elementSize, _count)
     #define serprog_flush()                           wifi_flush()
-    
 #else
     #define serprog_getchar()                         getchar()
     #define serprog_putchar(_character)               putchar(_character)
     #define serprog_read(_dst, _elementSize, _count)  fread(_dst, _elementSize, _count, stdin)
     #define serprog_write(_src, _elementSize, _count) fwrite(_src, _elementSize, _count, stdout)
     #define serprog_flush()                           fflush(stdout)
-
 #endif
 
 static inline uint32_t serprog_getu24(void) 
@@ -144,7 +146,7 @@ static inline void serprog_putu32(uint32_t d)
     serprog_putchar(buf[3]);
 }
 
-#define SPI_BUF_SIZE 4094
+#define SPI_BUF_SIZE 16384
 
 DMA_ATTR unsigned char write_buffer[SPI_BUF_SIZE];
 DMA_ATTR unsigned char read_buffer[SPI_BUF_SIZE];
@@ -262,7 +264,6 @@ static void process(int command)
             break;
         case S_CMD_Q_RDNMAXLEN:
         case S_CMD_Q_WRNMAXLEN:
-            //because of missing halfduplex support single transaction RX+TX is limited to 4094 (SPI_BUF_SIZE)
             serprog_putchar(S_ACK);
             serprog_putchar((SPI_BUF_SIZE / 2) & 0xFF);
             serprog_putchar(((SPI_BUF_SIZE / 2) >> 8) & 0xFF);
@@ -291,11 +292,6 @@ static void process(int command)
             {
                 uint32_t wlen = serprog_getu24();
                 uint32_t rlen = serprog_getu24();
-
-                //at least esp32s3's HW SPI does not support:
-                // 1) halfduplex with both TX and RX phases present
-                // 2) DMA buffer length of more than 4094 (?) bytes
-                // => i had to use fullduplex & combined TX&RX transmission is limited to 4094 bytes
 
                 if ((wlen + rlen) > SPI_BUF_SIZE)
                 {
@@ -393,10 +389,10 @@ void app_main(void)
     ret = usb_serial_jtag_driver_install(&usb_serial_jtag_config);
     ESP_ERROR_CHECK(ret);
 
-    esp_vfs_dev_usb_serial_jtag_set_rx_line_endings(ESP_LINE_ENDINGS_LF);
-    esp_vfs_dev_usb_serial_jtag_set_tx_line_endings(ESP_LINE_ENDINGS_LF);
+    usb_serial_jtag_vfs_set_rx_line_endings(ESP_LINE_ENDINGS_LF);
+    usb_serial_jtag_vfs_set_tx_line_endings(ESP_LINE_ENDINGS_LF);
     
-    esp_vfs_usb_serial_jtag_use_driver();
+    usb_serial_jtag_vfs_use_driver();
 
     #elif defined USE_HW_UART
     //configure HW uart
@@ -418,14 +414,13 @@ void app_main(void)
     ret = uart_driver_install(HW_UART_NUM, HW_UART_SERBUF_SIZE, 0, 0, NULL, ESP_INTR_FLAG_IRAM);
     ESP_ERROR_CHECK(ret);
 
-    esp_vfs_dev_uart_port_set_rx_line_endings(HW_UART_NUM, ESP_LINE_ENDINGS_LF);
-    esp_vfs_dev_uart_port_set_tx_line_endings(HW_UART_NUM, ESP_LINE_ENDINGS_LF);
+    uart_vfs_dev_port_set_rx_line_endings (HW_UART_NUM, ESP_LINE_ENDINGS_LF);
+    uart_vfs_dev_port_set_tx_line_endings (HW_UART_NUM, ESP_LINE_ENDINGS_LF);
 
-    esp_vfs_dev_uart_use_driver(HW_UART_NUM);
+    uart_vfs_dev_use_driver(HW_UART_NUM);
 
     #elif USE_USB_CDC
         #error not implemented
-
     #endif
 #endif
 
@@ -436,8 +431,5 @@ void app_main(void)
         int command = serprog_getchar();
 
         process(command);
-
-        //just to be safe from RTOS watchdog
-        vTaskDelay(1);
     }
 }
