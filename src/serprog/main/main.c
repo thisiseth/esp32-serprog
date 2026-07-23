@@ -14,33 +14,32 @@
 ////////////// Please update the following configuration according to your HardWare spec /////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifdef CONFIG_IDF_TARGET_ESP32
-    #define EEPROM_HOST  HSPI_HOST
-    #define PIN_NUM_MISO 18
+#ifdef CONFIG_IDF_TARGET_ESP32 //ESP32 can use any pins for SPI 
+                               //but 'native' IOMUX pins are believed to be more stable for higher speeds
+                               //if non-native pins are used there is no difference between HSPI and VSPI
+    //native SPI pins
+
+    #define EEPROM_HOST  SPI3_HOST //VSPI
+    #define PIN_NUM_MISO 19
     #define PIN_NUM_MOSI 23
-    #define PIN_NUM_CLK  19
-    #define PIN_NUM_CS   13
+    #define PIN_NUM_CLK  18
+    #define PIN_NUM_CS   5
 
-#elif defined CONFIG_IDF_TARGET_ESP32S2
-    #define EEPROM_HOST  SPI2_HOST
-    #define PIN_NUM_MISO 37
-    #define PIN_NUM_MOSI 35
-    #define PIN_NUM_CLK  36
-    #define PIN_NUM_CS   34
+    //or
 
-#elif defined CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32C2
-    #define EEPROM_HOST  SPI2_HOST
+    // #define EEPROM_HOST  SPI2_HOST //HSPI 
+    // #define PIN_NUM_MISO 12
+    // #define PIN_NUM_MOSI 13
+    // #define PIN_NUM_CLK  14
+    // #define PIN_NUM_CS   15
+
+#else //on other (newer) MCUs 'native' SPI pins vs GPIO matrix routing difference is less noticeable 
+      //so just choose whatever you like
+    #define EEPROM_HOST  SPI2_HOST 
     #define PIN_NUM_MISO 2
-    #define PIN_NUM_MOSI 7
-    #define PIN_NUM_CLK  6
-    #define PIN_NUM_CS   10
-
-#elif defined CONFIG_IDF_TARGET_ESP32S3
-    #define EEPROM_HOST  SPI2_HOST
-    #define PIN_NUM_MISO 5
-    #define PIN_NUM_MOSI 16
-    #define PIN_NUM_CLK  15
-    #define PIN_NUM_CS   4
+    #define PIN_NUM_MOSI 41
+    #define PIN_NUM_CLK  40
+    #define PIN_NUM_CS   42
 
 #endif
 

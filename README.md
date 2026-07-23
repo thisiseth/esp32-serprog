@@ -13,7 +13,7 @@ Use your ESP32 board as a [flashrom](https://flashrom.org/) compatible SPI flash
 
 ## Configuration
 
-First you need an esp-idf v6.x installation. The most convenient option is probably the official VS Code esp-idf extension, pick latest stable sdk version.
+First you need an esp-idf (v6.0 or newer) installation. The most convenient option is probably the official VS Code esp-idf extension, pick latest stable sdk version.
 
 1) Set your target chip using `idf.py set-target your_chip` where `your_chip` is e.g. `esp32s3`
 2) Run `idf.py menuconfig` and set `Component config -> ESP-STDIO -> Channel for console output` to the serial interface you are going to use. 
