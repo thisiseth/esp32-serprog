@@ -146,7 +146,7 @@ static inline void serprog_putu32(uint32_t d)
     serprog_putchar(buf[3]);
 }
 
-#define SPI_BUF_SIZE 4094
+#define SPI_BUF_SIZE 16384
 
 DMA_ATTR unsigned char write_buffer[SPI_BUF_SIZE];
 DMA_ATTR unsigned char read_buffer[SPI_BUF_SIZE];
@@ -264,7 +264,6 @@ static void process(int command)
             break;
         case S_CMD_Q_RDNMAXLEN:
         case S_CMD_Q_WRNMAXLEN:
-            //because of missing halfduplex support single transaction RX+TX is limited to 4094 (SPI_BUF_SIZE)
             serprog_putchar(S_ACK);
             serprog_putchar((SPI_BUF_SIZE / 2) & 0xFF);
             serprog_putchar(((SPI_BUF_SIZE / 2) >> 8) & 0xFF);
@@ -293,11 +292,6 @@ static void process(int command)
             {
                 uint32_t wlen = serprog_getu24();
                 uint32_t rlen = serprog_getu24();
-
-                //at least esp32s3's HW SPI does not support:
-                // 1) halfduplex with both TX and RX phases present
-                // 2) DMA buffer length of more than 4094 (?) bytes
-                // => i had to use fullduplex & combined TX&RX transmission is limited to 4094 bytes
 
                 if ((wlen + rlen) > SPI_BUF_SIZE)
                 {
